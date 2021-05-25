@@ -76,14 +76,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                 ACCESS_LOCATION_PERMISSION_CODE);
 
-        if (!intent.getBooleanExtra(AddLocationActivity.VALID,false)){
-            showMyLocation();
-        }else{
-            LatLng ubication = new LatLng(Double.parseDouble(intent.getStringExtra(AddLocationActivity.LATITUDE)),
-                    Double.parseDouble(intent.getStringExtra(AddLocationActivity.LONGITUDE)));
-            googleMap.addMarker(new MarkerOptions().position(ubication).title(intent.getStringExtra(AddLocationActivity.NAME)).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
-            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ubication, 10));
-        }
     }
 
     @Override
@@ -96,9 +88,21 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         switch (requestCode) {
             case ACCESS_LOCATION_PERMISSION_CODE:
+                showLocation();
                 break;
             default:
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        }
+    }
+
+    private void showLocation() {
+        if (!intent.getBooleanExtra(AddLocationActivity.VALID,false)){
+            showMyLocation();
+        }else{
+            LatLng ubication = new LatLng(Double.parseDouble(intent.getStringExtra(AddLocationActivity.LATITUDE)),
+                    Double.parseDouble(intent.getStringExtra(AddLocationActivity.LONGITUDE)));
+            googleMap.addMarker(new MarkerOptions().position(ubication).title(intent.getStringExtra(AddLocationActivity.NAME)).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE)));
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ubication, 10));
         }
     }
 
