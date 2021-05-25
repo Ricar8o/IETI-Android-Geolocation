@@ -9,10 +9,14 @@ import androidx.fragment.app.FragmentActivity;
 import android.Manifest;
 import android.annotation.SuppressLint;
 import android.content.Context;
+import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.view.View;
+import android.widget.TextView;
 
 import com.google.android.gms.location.FusedLocationProviderClient;
 import com.google.android.gms.location.LocationServices;
@@ -31,10 +35,14 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     private final int ACCESS_LOCATION_PERMISSION_CODE = 44;
     private GoogleMap googleMap;
     private ActivityMapsBinding binding;
+    private FusedLocationProviderClient fusedLocationClient;
+    public TextView address;
+    private Intent intent;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        this.address = (TextView) findViewById( R.id.address );
 
         binding = ActivityMapsBinding.inflate(getLayoutInflater());
         setContentView(binding.getRoot());
@@ -44,6 +52,8 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                 .findFragmentById(R.id.map);
         mapFragment.getMapAsync(this);
 
+        fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
+        intent = getIntent();
     }
 
     /**
@@ -60,78 +70,102 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
     public void onMapReady(GoogleMap googleMap) {
         this.googleMap = googleMap;
 
-        ActivityCompat.requestPermissions(this,new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
+        ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                 ACCESS_LOCATION_PERMISSION_CODE);
     }
 
     @Override
-    public void onRequestPermissionsResult( int requestCode, @NonNull String[] permissions,
-                                            @NonNull int[] grantResults )
-    {
-        for ( int grantResult : grantResults )
-        {
-            if ( grantResult == -1 )
-            {
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions,
+                                           @NonNull int[] grantResults) {
+        for (int grantResult : grantResults) {
+            if (grantResult == -1) {
                 return;
             }
         }
-        switch ( requestCode )
-        {
+        switch (requestCode) {
             case ACCESS_LOCATION_PERMISSION_CODE:
                 showMyLocation();
                 break;
             default:
-                super.onRequestPermissionsResult( requestCode, permissions, grantResults );
+                super.onRequestPermissionsResult(requestCode, permissions, grantResults);
         }
     }
 
     @SuppressLint("MissingPermission")
-    public void showMyLocation()
-    {
-        if ( googleMap != null )
-        {
-            String[] permissions = { android.Manifest.permission.ACCESS_FINE_LOCATION,
-                    android.Manifest.permission.ACCESS_COARSE_LOCATION };
-            if ( hasPermissions( this, permissions ) )
-            {
-                googleMap.setMyLocationEnabled( true );
+    public void showMyLocation() {
+        if (googleMap != null) {
+            String[] permissions = {android.Manifest.permission.ACCESS_FINE_LOCATION,
+                    android.Manifest.permission.ACCESS_COARSE_LOCATION};
+            if (hasPermissions(this, permissions)) {
+                googleMap.setMyLocationEnabled(true);
 
-                FusedLocationProviderClient fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
                 fusedLocationClient.getLastLocation()
                         .addOnSuccessListener(this, new OnSuccessListener<Location>() {
                             @Override
                             public void onSuccess(Location location) {
                                 // Got last known location. In some rare situations this can be null.
                                 if (location != null) {
-                                    addMarkerAndZoom( location, "My Location", 15 );
+                                    addMarkerAndZoom(location, "My Location", 15);
                                 }
                             }
                         });
-            }
-            else
-            {
-                ActivityCompat.requestPermissions( this, permissions, ACCESS_LOCATION_PERMISSION_CODE );
+            } else {
+                ActivityCompat.requestPermissions(this, permissions, ACCESS_LOCATION_PERMISSION_CODE);
             }
         }
     }
 
-    public static boolean hasPermissions(Context context, String[] permissions )
-    {
-        for ( String permission : permissions )
-        {
-            if ( ContextCompat.checkSelfPermission( context, permission ) == PackageManager.PERMISSION_DENIED )
-            {
+    public static boolean hasPermissions(Context context, String[] permissions) {
+        for (String permission : permissions) {
+            if (ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_DENIED) {
                 return false;
             }
         }
         return true;
     }
 
-    public void addMarkerAndZoom( Location location, String title, int zoom  )
-    {
-        LatLng myLocation = new LatLng( location.getLatitude(), location.getLongitude() );
-        googleMap.addMarker( new MarkerOptions().position( myLocation ).title( title ) );
-        googleMap.moveCamera( CameraUpdateFactory.newLatLngZoom( myLocation, zoom ) );
+    public void addMarkerAndZoom(Location location, String title, int zoom) {
+        LatLng myLocation = new LatLng(location.getLatitude(), location.getLongitude());
+        googleMap.addMarker(new MarkerOptions().position(myLocation).title(title));
+        googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(myLocation, zoom));
+    }
+
+
+    public void onFindAddressClicked(View view) {
+        startFetchAddressIntentService();
+    }
+
+    @SuppressLint("MissingPermission")
+    public void startFetchAddressIntentService() {
+
+        fusedLocationClient.getLastLocation()
+                .addOnSuccessListener(this, new OnSuccessListener<Location>() {
+                    @Override
+                    public void onSuccess(Location location) {
+                        if (location != null) {
+                            AddressResultReceiver addressResultReceiver = new AddressResultReceiver(new Handler());
+                            addressResultReceiver.setAddressResultListener(new AddressResultListener() {
+                                @Override
+                                public void onAddressFound(final String address) {
+                                    runOnUiThread(new Runnable() {
+                                        @Override
+                                        public void run() {
+                                            TextView text = (TextView) findViewById( R.id.address );
+                                            text.setText(address);
+                                            text.setVisibility(View.VISIBLE);
+                                        }
+                                    });
+
+
+                                }
+                            });
+                            Intent intent = new Intent(MapsActivity.this, FetchAddressIntentService.class);
+                            intent.putExtra(FetchAddressIntentService.RECEIVER, addressResultReceiver);
+                            intent.putExtra(FetchAddressIntentService.LOCATION_DATA_EXTRA, location);
+                            startService(intent);
+                        }
+                    }
+                });
     }
 
 }
