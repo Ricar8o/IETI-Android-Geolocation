@@ -6,4 +6,10 @@
     <string name="address_found">Address found</string>
     <string name="service_not_available">Service not available</string>
     <string name="invalid_lat_long_used">Invalid lat long used</string>
+    <string name="title_activity_form">New Location</string>
+    <string name="name">name</string>
+    <string name="description">description</string>
+    <string name="latitude">latitude</string>
+    <string name="longitude">longitude</string>
+    <string name="submit">Find</string>
 </resources>

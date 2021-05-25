@@ -24,9 +24,11 @@ import com.google.android.gms.maps.CameraUpdateFactory;
 import com.google.android.gms.maps.GoogleMap;
 import com.google.android.gms.maps.OnMapReadyCallback;
 import com.google.android.gms.maps.SupportMapFragment;
+import com.google.android.gms.maps.model.BitmapDescriptorFactory;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.MarkerOptions;
 import com.google.android.gms.tasks.OnSuccessListener;
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 
 import edu.eci.ieti.android.geolocationapp.databinding.ActivityMapsBinding;
 
@@ -54,6 +56,7 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         fusedLocationClient = LocationServices.getFusedLocationProviderClient(this);
         intent = getIntent();
+        setFloatingAction();
     }
 
     /**
@@ -72,6 +75,15 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
 
         ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.ACCESS_FINE_LOCATION},
                 ACCESS_LOCATION_PERMISSION_CODE);
+
+        if (!intent.getBooleanExtra(AddLocationActivity.VALID,false)){
+            showMyLocation();
+        }else{
+            LatLng ubication = new LatLng(Double.parseDouble(intent.getStringExtra(AddLocationActivity.LATITUDE)),
+                    Double.parseDouble(intent.getStringExtra(AddLocationActivity.LONGITUDE)));
+            googleMap.addMarker(new MarkerOptions().position(ubication).title(intent.getStringExtra(AddLocationActivity.NAME)).icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_GREEN)));
+            googleMap.moveCamera(CameraUpdateFactory.newLatLngZoom(ubication, 10));
+        }
     }
 
     @Override
@@ -84,7 +96,6 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
         }
         switch (requestCode) {
             case ACCESS_LOCATION_PERMISSION_CODE:
-                showMyLocation();
                 break;
             default:
                 super.onRequestPermissionsResult(requestCode, permissions, grantResults);
@@ -166,6 +177,17 @@ public class MapsActivity extends FragmentActivity implements OnMapReadyCallback
                         }
                     }
                 });
+    }
+
+    private void setFloatingAction(){
+        FloatingActionButton fab = findViewById(R.id.fab);
+        fab.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MapsActivity.this, AddLocationActivity.class);
+                startActivity(intent);
+            }
+        });
     }
 
 }

@@ -39,6 +39,11 @@
             </intent-filter>
         </activity>
 
+        <activity
+            android:name=".AddLocationActivity"
+            android:label="@string/title_activity_form">
+        </activity>
+
         <service
             android:name=".FetchAddressIntentService"
             android:exported="false" />
